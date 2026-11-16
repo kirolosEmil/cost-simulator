@@ -319,6 +319,53 @@ function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.par
 function store(k, v){
   try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
   if(k === LS.db || k === LS.comps){ cloud.local = Date.now(); try{ localStorage.setItem('cs.updated', cloud.local); }catch(e){} cloudPush(); }
+  if(k === LS.db && !shared.applying) sharedPush();
+}
+/* ---- shared numbers for every device: prices / machines / labor / OVH live in one Firebase doc ----
+   Anyone with the site can edit; every open device updates within a second. Saved parts stay per device. */
+const FIREBASE_CONFIG = { // Firebase project cost-simulator-a9a66 — public web config (security comes from the Firestore rules)
+  apiKey: 'AIzaSyBADr09iKSNkE3QxOJcgbVFMdJrlIbrGzw',
+  authDomain: 'cost-simulator-a9a66.firebaseapp.com',
+  projectId: 'cost-simulator-a9a66',
+  storageBucket: 'cost-simulator-a9a66.firebasestorage.app',
+  messagingSenderId: '675196309269',
+  appId: '1:675196309269:web:5495e9e6de77d99319a31c'
+};
+var shared = {doc:null, t:0, applying:false, dev:(load('cs.dev', null) || (() => { const d = Math.random().toString(36).slice(2); try{ localStorage.setItem('cs.dev', JSON.stringify(d)); }catch(e){} return d; })())};
+function sharedPush(){
+  if(!shared.doc) return;
+  clearTimeout(shared.t);
+  shared.t = setTimeout(() => {
+    setSync('🔄 بيحدّث الأجهزة…');
+    shared.doc.set({db:JSON.stringify(state.db), updated:Date.now(), dev:shared.dev})
+      .then(() => setSync('🟢 متزامن مع كل الأجهزة')).catch(() => setSync('⚠️ التعديل اتحفظ هنا بس'));
+  }, 600);
+}
+function loadScript(src){ return new Promise((ok, bad) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s); }); }
+async function sharedStart(){
+  if(!FIREBASE_CONFIG || /claude/.test(location.hostname)) return;
+  try{
+    const v = '10.12.2';
+    await loadScript(`https://www.gstatic.com/firebasejs/${v}/firebase-app-compat.js`);
+    await loadScript(`https://www.gstatic.com/firebasejs/${v}/firebase-firestore-compat.js`);
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const doc = firebase.firestore().collection('shared').doc('db');
+    setSync('🔄 بيتصل…');
+    doc.onSnapshot(snap => {
+      shared.doc = doc;
+      if(!snap.exists){ sharedPush(); return; }              // first device ever: upload its numbers
+      if(snap.metadata.hasPendingWrites) return;
+      const d = snap.data();
+      if(typeof d.db === 'string' && d.db !== JSON.stringify(state.db)){
+        let incoming; try{ incoming = JSON.parse(d.db); }catch(e){ return; }
+        shared.applying = true; state.db = incoming; store(LS.db, state.db); shared.applying = false;
+        renderCalc(); renderList();
+        if(!(document.activeElement && document.activeElement.closest('#t-db'))) renderDB();
+        if(d.dev !== shared.dev) toast('🔄 الأسعار اتحدثت من جهاز تانى');
+      }
+      setSync('🟢 متزامن مع كل الأجهزة');
+    }, () => setSync('⚠️ مش متصل — شغال بالأرقام اللى على الجهاز'));
+  }catch(e){ setSync('⚠️ مش متصل — شغال بالأرقام اللى على الجهاز'); }
 }
 /* ---- cloud copy (web version on claude.ai): DB + saved parts in the viewer's private store ---- */
 var cloud = {ref:null, busy:false, dirty:false, t:0, local:+(load('cs.updated', 0) || 0)};
@@ -658,6 +705,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b
 function renderAll(){ renderCalc(); renderList(); renderDB(); }
 renderAll();
 cloudStart();
+sharedStart();
 </script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{}); if('serviceWorker' in navigator){let done=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!done){done=true;location.reload();}});}</script>
 </body>
