@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cost Simulator">
+<meta name="theme-color" content="#1f3864">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Cost Simulator</title>
+<script src="exceljs.min.js"></script>
+<style>
+/* Factory cost sheet: navy header, calm green (material) / blue (machines) / amber (result) bands */
+:root{--bg:#f3f5f9;--card:#fff;--field:#fff;--fieldLine:#c9cfda;--hover:#eef2f8;--foot:#f7f8fa;--dbh:#e7eaf0;--ink:#1d2433;--mute:#6b7487;--line:#dfe3ea;--blue:#1f3864;--onBlue:#fff;--navMute:#cfd8ea;--navLine:#45608f;--mat:#e2efda;--matD:#548235;--prc:#ddebf7;--prcD:#2f75b5;--ovh:#fce4d6;--ovhD:#c65911;--tot:#fff2cc;--totD:#bf8f00;--totLine:#e8d48a;--totInk:#7a5b00;--danger:#b42318;--ovrBg:#fff7d6;--ovrLine:#e0b93a;--shade:rgba(15,20,30,.45)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#11151d;--card:#1a202b;--field:#222a37;--fieldLine:#3a4557;--hover:#263042;--foot:#202734;--dbh:#252d3b;--ink:#e6e9ef;--mute:#9aa3b5;--line:#2e3747;--blue:#1b2f55;--navMute:#b8c4dc;--navLine:#3d5a8c;--mat:#1f3324;--matD:#8fcf7a;--prc:#1a2c40;--prcD:#7fb6ea;--ovh:#3a2618;--ovhD:#f0a46e;--tot:#3a3016;--totD:#e9c45a;--totLine:#5e4f22;--totInk:#ffd866;--danger:#ff8a80;--ovrBg:#3d3414;--ovrLine:#a8892a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11151d;--card:#1a202b;--field:#222a37;--fieldLine:#3a4557;--hover:#263042;--foot:#202734;--dbh:#252d3b;--ink:#e6e9ef;--mute:#9aa3b5;--line:#2e3747;--blue:#1b2f55;--navMute:#b8c4dc;--navLine:#3d5a8c;--mat:#1f3324;--matD:#8fcf7a;--prc:#1a2c40;--prcD:#7fb6ea;--ovh:#3a2618;--ovhD:#f0a46e;--tot:#3a3016;--totD:#e9c45a;--totLine:#5e4f22;--totInk:#ffd866;--danger:#ff8a80;--ovrBg:#3d3414;--ovrLine:#a8892a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--blue)}
+header{background:var(--blue);color:var(--onBlue);padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+@media(max-width:600px){header h1{font-size:15px!important}input,select{font-size:16px!important}main{padding-left:max(12px,env(safe-area-inset-left,0px))!important;padding-right:max(12px,env(safe-area-inset-right,0px))!important}.result b{font-size:26px!important}}
+.dlg{position:fixed;inset:0;background:var(--shade);display:flex;align-items:center;justify-content:center;z-index:30;padding:16px}
+.dlg>div{background:var(--card);color:var(--ink);border-radius:12px;padding:18px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.dlg p{margin:0;line-height:1.6}
+.dlg .bar{justify-content:flex-start}
+.sync{font-size:12px;color:var(--navMute)}
+header h1{margin:0;font-size:18px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:transparent;color:var(--navMute);border:1px solid var(--navLine);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:14px}
+nav button.on{background:var(--card);color:var(--ink);font-weight:600}
+main{padding:14px max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px));max-width:1500px;margin:auto}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.card h2{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h2 .sp{flex:1}
+.mat h2{color:var(--matD)}.prc h2{color:var(--prcD)}.ovh h2{color:var(--ovhD)}.tot h2{color:var(--totD)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute)}
+input,select{font:inherit;padding:5px 7px;border:1px solid var(--fieldLine);border-radius:6px;background:var(--field);color:var(--ink);min-width:0}
+input[type=number]{text-align:center}
+input.ovr{background:var(--ovrBg);border-color:var(--ovrLine)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:4px 6px;text-align:center;vertical-align:middle}
+th{font-size:12px;font-weight:600;white-space:nowrap}
+.mat th{background:var(--mat)}.prc th{background:var(--prc)}.ovh th{background:var(--ovh)}.db th{background:var(--dbh)}
+td input,td select{width:100%}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+td.mute{color:var(--mute);font-size:12px}
+tfoot td{font-weight:700;background:var(--foot)}
+.btn{font:inherit;border:1px solid var(--fieldLine);background:var(--field);color:var(--ink);border-radius:6px;padding:5px 11px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.pri{background:#1f3864;color:#fff;border-color:#2f4f86}
+.btn.pri:hover{background:#2b4a80}
+.btn.x{color:var(--danger);border:none;background:none;font-size:16px;padding:2px 6px}
+.btn.sm{padding:3px 8px;font-size:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+.sum td:first-child{text-align:right}
+.sum tr.big td{background:var(--tot);font-size:16px;font-weight:700}
+.sum tr.sub td{background:var(--foot);font-weight:700}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.kpi{flex:1;min-width:140px;border-radius:8px;padding:8px 10px}
+.kpi b{display:block;font-size:20px;margin-top:2px}
+.kpi.m{background:var(--mat)}.kpi.p{background:var(--prc)}.kpi.o{background:var(--ovh)}.kpi.t{background:var(--tot)}
+.note{color:var(--mute);font-size:12px;margin:6px 0 0}
+.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:8px;opacity:0;transition:.3s;pointer-events:none;z-index:20}
+.toast.on{opacity:1}
+.pct{display:flex;gap:4px;align-items:center;justify-content:center}
+.pct input{width:90px}
+.search{width:240px}
+.simple{max-width:720px;margin:auto}
+.result{background:var(--tot);border:1px solid var(--totLine);border-radius:10px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;font-size:18px;font-weight:600}
+.result b{font-size:32px;color:var(--totInk);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧮 Cost Simulator — حساب تكلفة المكونات</h1>
+  <span class="sync" id="sync"></span>
+  <span style="flex:1"></span>
+  <nav>
+    <button data-t="calc" class="on">🧮 الحساب</button>
+    <button data-t="list" title="المكونات المحفوظة">📋</button>
+    <button data-t="db" title="قاعدة البيانات (Back end)">⚙️</button>
+  </nav>
+</header>
+<main>
+
+<!-- ============ CALC ============ -->
+<section class="tab on" id="t-calc">
+  <div class="simple">
+    <div class="card">
+      <h2>📦 المشغولة <span class="sp"></span>
+        <button class="btn" onclick="newComp()">🆕 جديد</button>
+        <button class="btn pri" onclick="saveComp()">💾 حفظ</button>
+        <button class="btn" onclick="exportExcel([cur])">📥 Excel</button>
+      </h2>
+      <div class="grid">
+        <label class="f">اسم المشغولة<input id="c-name" oninput="cur.name=this.value;touch()"></label>
+        <label class="f">الكود<input id="c-code" oninput="cur.code=this.value;touch()"></label>
+      </div>
+    </div>
+
+    <div class="card mat">
+      <h2>⚖️ وزن المشغولة <span class="sp"></span><button class="btn sm" onclick="addMat()">＋ خامة</button></h2>
+      <table>
+        <thead><tr><th>الخامة</th><th style="width:30%">الوزن (كجم)</th><th style="width:40px"></th></tr></thead>
+        <tbody id="mat-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card prc">
+      <h2>⚙️ عمليات المكن <span class="sp"></span><button class="btn sm" onclick="addPrc()">＋ عملية</button></h2>
+      <table>
+        <thead><tr><th>#</th><th>الماكينة</th><th style="width:30%">قطعة / ساعة</th><th style="width:40px"></th></tr></thead>
+        <tbody id="prc-body"></tbody>
+      </table>
+    </div>
+
+    <div class="result"><span>تكلفة القطعة</span><b id="total">0.00</b></div>
+  </div>
+</section>
+
+<!-- ============ LIST ============ -->
+<section class="tab" id="t-list">
+  <div class="card">
+    <h2>📋 المكونات المحفوظة <span class="sp"></span>
+      <input class="search" id="l-q" placeholder="🔍 بحث بالاسم أو الكود" oninput="renderList()">
+      <button class="btn" onclick="exportExcel(state.comps)">📥 Excel لكل المكونات</button>
+      <button class="btn" onclick="backup()">💾 نسخة احتياطية (JSON)</button>
+      <button class="btn" onclick="pick('.json',restore)">📂 استرجاع نسخة</button>
+    </h2>
+    <div class="tw"><table class="db">
+      <thead><tr><th>#</th><th>الاسم</th><th>الكود</th><th>خامات</th><th>عمليات</th><th>OVH</th><th>التكلفة المباشرة</th><th>التكلفة التقديرية / قطعة</th><th>آخر تعديل</th><th></th></tr></thead>
+      <tbody id="list-body"></tbody>
+    </table></div>
+    <p class="note">التكاليف هنا بتتحسب بأسعار قاعدة البيانات الحالية — لو غيّرت سعر خامة أو ماكينة كل المكونات بتتحدث.</p>
+  </div>
+</section>
+
+<!-- ============ DB ============ -->
+<section class="tab db" id="t-db">
+  <div class="card">
+    <h2>🗄️ قاعدة البيانات <span class="sp"></span>
+      <button class="btn" onclick="exportDB()">💾 حفظ القاعدة (JSON)</button>
+      <button class="btn" onclick="pick('.json',importDB)">📂 تحميل قاعدة</button>
+      <button class="btn" onclick="resetDB()">↺ القيم الأصلية من الشيت</button>
+    </h2>
+    <p class="note" style="margin:0">أى تعديل هنا بيتحفظ أوتوماتيك وبيأثر على كل الحسابات.</p>
+  </div>
+  <div class="two">
+    <div class="card"><h2>🏷️ أنواع الخامات وسعر الوحدة <span class="sp"></span><button class="btn sm" onclick="addRow('types')">＋</button></h2><div class="tw"><table><thead><tr><th>النوع</th><th>الوحدة</th><th>سعر الوحدة</th><th></th></tr></thead><tbody id="db-types"></tbody></table></div></div>
+    <div class="card"><h2>👷 العمالة <span class="sp"></span><button class="btn sm" onclick="addRow('labor')">＋</button></h2><div class="tw"><table><thead><tr><th>الاسم</th><th>سعر الساعة</th><th></th></tr></thead><tbody id="db-labor"></tbody></table></div></div>
+  </div>
+  <div class="card"><h2>🧱 الخامات <span class="sp"></span><button class="btn sm" onclick="addRow('materials')">＋</button></h2><div class="tw"><table><thead><tr><th>الكود</th><th style="min-width:320px">الوصف</th><th>النوع</th><th>السعر</th><th></th></tr></thead><tbody id="db-materials"></tbody></table></div></div>
+  <div class="two">
+    <div class="card"><h2>⚙️ الماكينات <span class="sp"></span><button class="btn sm" onclick="addRow('machines')">＋</button></h2><div class="tw"><table><thead><tr><th>الكود</th><th>الماكينة</th><th>سعر الساعة</th><th>قطعة/ساعة افتراضى</th><th>العمالة الافتراضية</th><th></th></tr></thead><tbody id="db-machines"></tbody></table></div></div>
+    <div class="card"><h2>🏭 نسب المصاريف غير المباشرة (OVH) <span class="sp"></span><button class="btn sm" onclick="addRow('ovh')">＋</button></h2><div class="tw"><table><thead><tr><th>البند</th><th>النسبة %</th><th>محسوبة على</th><th></th></tr></thead><tbody id="db-ovh"></tbody></table></div></div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= DATA ================= */
+const BASES = {dm:'الخامات (DM)', labor:'العمالة', machine:'الماكينات', proc:'العمليات كلها', direct:'التكلفة المباشرة'};
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function defaultDB(){
+  const t = {sts:'t1', ns:'t2', gal:'t3'};
+  const l1 = 'l1', l2 = 'l2';
+  return {
+    matVer:3,
+    types:[
+      {id:t.ns,  name:'اسود', unit:'كجم', price:48},
+      {id:t.gal, name:'مجلفن', unit:'كجم', price:54},
+      {id:t.sts, name:'ستانلس', unit:'كجم', price:96},
+    ],
+    materials:[
+      {id:'mb', code:'', desc:'اسود', type:t.ns},
+      {id:'mg', code:'', desc:'مجلفن', type:t.gal},
+      {id:'ms', code:'', desc:'ستانلس', type:t.sts},
+    ],
+    labor:[
+      {id:l1, name:'Labor 1', rate:140},
+      {id:l2, name:'Labor 2', rate:140},
+    ],
+    machines:[
+      {id:'k1', code:'mm1601', name:'Laser', rate:187.28817727272727, pph:100, labor:l1},
+      {id:'k2', code:'mm1600', name:'Bending mach.', rate:334.4312284848484, pph:100, labor:l2},
+      {id:'k3', code:'mm0011', name:'CNC mach.', rate:105.81435363636365, pph:100, labor:l2},
+    ],
+    ovh:[
+      {id:'o1', name:'Indirect Materials', pct:3.643015299919931, base:'dm'},
+      {id:'o2', name:'Indirect Labor', pct:52.96650947875272, base:'labor'},
+      {id:'o3', name:'Indirect Machinery', pct:25.35171548704353, base:'machine'},
+      {id:'o4', name:'Electricity Overhead', pct:2.86203971219689, base:'dm'},
+      {id:'o5', name:'Water Overhead', pct:0.4478378078374804, base:'dm'},
+      {id:'o6', name:'Other Overheads', pct:1.8990696388385507e-06, base:'dm'},
+    ],
+  };
+}
+function exampleComp(){
+  return {id:uid(), name:'cabine', code:'', qty:1, notes:'مثال من شيت cost Simulator',
+    mats:[{id:uid(), mat:'mg', qty:2, price:null}],
+    prcs:[{id:uid(), mach:'k1', pph:100, labor:'l1', workers:1},
+          {id:uid(), mach:'k2', pph:100, labor:'l2', workers:1},
+          {id:uid(), mach:'k3', pph:100, labor:'l2', workers:1}],
+    updated:Date.now()};
+}
+function blankComp(){ return {id:uid(), name:'', code:'', qty:1, notes:'', mats:[{id:uid(), mat:state.db.materials[0]?.id || '', qty:0, price:null}], prcs:[{id:uid(), mach:'', pph:'', labor:'', workers:1}], updated:Date.now()}; }
+
+const LS = {db:'cs.db', comps:'cs.comps', cur:'cs.cur'};
+function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function store(k, v){
+  try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+  if(k === LS.db || k === LS.comps){ cloud.local = Date.now(); try{ localStorage.setItem('cs.updated', cloud.local); }catch(e){} cloudPush(); }
+}
+/* ---- cloud copy (web version on claude.ai): DB + saved parts in the viewer's private store ---- */
+var cloud = {ref:null, busy:false, dirty:false, t:0, local:+(load('cs.updated', 0) || 0)};
+function setSync(msg){ const el = document.getElementById('sync'); if(el) el.textContent = msg; }
+function cloudPush(){
+  if(!cloud.ref) return;
+  clearTimeout(cloud.t);
+  cloud.t = setTimeout(async () => {
+    if(cloud.busy){ cloud.dirty = true; return; }
+    cloud.busy = true; setSync('☁️ بيحفظ…');
+    try{ await cloud.ref.set({db:state.db, comps:state.comps, updated:cloud.local}); setSync('☁️ محفوظ'); }
+    catch(e){ setSync('⚠️ اتحفظ على الجهاز بس'); }
+    cloud.busy = false;
+    if(cloud.dirty){ cloud.dirty = false; cloudPush(); }
+  }, 800);
+}
+async function cloudStart(){
+  for(let i = 0; i < 25 && !(window.claude && claude.use); i++) await new Promise(r => setTimeout(r, 200));
+  if(!(window.claude && claude.use)) return;            // desktop exe: local storage only
+  const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+  const id = user ? await user.id() : null;
+  if(!db || !id){ setSync('محفوظ على الجهاز ده بس'); return; }
+  setSync('☁️ بيحمّل…');
+  const ref = db.doc('data/users/' + id + '/state');
+  try{
+    const s = await ref.get();
+    const d = s.exists ? s.data() : null;
+    if(d && d.db && Array.isArray(d.comps) && (d.updated || 0) > cloud.local){
+      state.db = JSON.parse(JSON.stringify(d.db)); state.comps = JSON.parse(JSON.stringify(d.comps)); cloud.local = d.updated;
+      try{ localStorage.setItem(LS.db, JSON.stringify(state.db)); localStorage.setItem(LS.comps, JSON.stringify(state.comps)); localStorage.setItem('cs.updated', cloud.local); }catch(e){}
+      renderAll(); cloud.ref = ref; setSync('☁️ محفوظ');
+    } else { cloud.ref = ref; if(!d || (d.updated || 0) < cloud.local || !cloud.local){ if(!cloud.local) cloud.local = Date.now(); cloudPush(); } else setSync('☁️ محفوظ'); }
+  }catch(e){ setSync('محفوظ على الجهاز ده بس'); }
+}
+async function uiDialog(msg, ok, cancel){
+  return new Promise(res => {
+    const w = document.createElement('div'); w.className = 'dlg';
+    w.innerHTML = `<div role="dialog" aria-modal="true"><p></p><div class="bar"><button class="btn pri" id="dlg-ok">${ok}</button>${cancel ? `<button class="btn" id="dlg-no">${cancel}</button>` : ''}</div></div>`;
+    w.querySelector('p').textContent = msg;
+    const done = v => { w.remove(); res(v); };
+    w.querySelector('#dlg-ok').onclick = () => done(true);
+    if(cancel){ w.querySelector('#dlg-no').onclick = () => done(false); w.onclick = e => { if(e.target === w) done(false); }; }
+    document.body.appendChild(w); w.querySelector('#dlg-ok').focus();
+  });
+}
+const uiConfirm = msg => uiDialog(msg, 'تمام', 'إلغاء');
+const uiAlert = msg => uiDialog(msg, 'حسناً');
+
+const state = {db:load(LS.db, null) || defaultDB(), comps:load(LS.comps, null)};
+if(!state.comps){ state.comps = [exampleComp()]; }
+let cur = load(LS.cur, null) || JSON.parse(JSON.stringify(state.comps[0]));
+['types','materials','labor','machines','ovh'].forEach(k => { if(!Array.isArray(state.db[k])) state.db[k] = defaultDB()[k]; });
+// v3: materials are only اسود / مجلفن / ستانلس — convert older saved data (each old material → the new one of its type)
+(function migrateMaterials(){
+  if(state.db.matVer >= 3) return;
+  const def = defaultDB(), oldTypes = state.db.types, oldMats = state.db.materials;
+  const nameToType = {'normal steel':'t2', 'galvanized':'t3', 'sts':'t1'}, typeToMat = {t2:'mb', t3:'mg', t1:'ms'};
+  const priceOf = {}; oldTypes.forEach(t => { const k = nameToType[t.name] || t.id; priceOf[k] = t.price; });
+  state.db.types = def.types.map(t => ({...t, price:priceOf[t.id] ?? t.price}));
+  state.db.materials = def.materials; state.db.matVer = 3;
+  const remap = c => (c.mats || []).forEach(r => { const om = oldMats.find(m => m.id === r.mat), ot = om && oldTypes.find(t => t.id === om.type);
+    const nt = ot ? (nameToType[ot.name] || ot.id) : null; r.mat = typeToMat[nt] || (r.mat ? 'mg' : ''); });
+  state.comps.forEach(remap); remap(cur);
+  store(LS.db, state.db); store(LS.comps, state.comps); store(LS.cur, cur);
+})();
+
+/* ================= CALC ================= */
+const byId = (arr, id) => arr.find(x => x.id === id);
+const n = v => (isFinite(+v) ? +v : 0);
+function matPriceDB(matId){
+  const m = byId(state.db.materials, matId); if(!m) return 0;
+  const t = byId(state.db.types, m.type); return t ? n(t.price) : 0;
+}
+function calc(c){
+  const db = state.db, r = {mats:[], prcs:[], ovh:[]};
+  let dm = 0, mach = 0, lab = 0;
+  (c.mats||[]).forEach(row => {
+    const price = row.price != null && row.price !== '' ? n(row.price) : matPriceDB(row.mat);
+    const cost = price * n(row.qty); dm += cost; r.mats.push({price, cost});
+  });
+  (c.prcs||[]).forEach(row => {
+    const m = byId(db.machines, row.mach), l = byId(db.labor, row.labor || m?.labor), pph = n(row.pph);
+    const mr = m ? n(m.rate) : 0, lr = l ? n(l.rate) : 0, w = row.workers === '' || row.workers == null ? 1 : n(row.workers);
+    const mc = pph > 0 ? mr / pph : 0, lc = pph > 0 ? lr * w / pph : 0;
+    mach += mc; lab += lc; r.prcs.push({mr, lr, mc, lc, tot:mc + lc});
+  });
+  const proc = mach + lab, direct = dm + proc;
+  const baseVal = {dm, labor:lab, machine:mach, proc, direct};
+  let ovh = 0;
+  db.ovh.forEach(o => { const b = baseVal[o.base] || 0, v = n(o.pct) / 100 * b; ovh += v; r.ovh.push({o, b, v}); });
+  Object.assign(r, {dm, mach, lab, proc, direct, ovhTot:ovh, total:direct + ovh});
+  return r;
+}
+
+/* ================= FORMAT / UTILS ================= */
+const f2 = v => (Math.round(v * 100) / 100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const f3 = v => (+v).toLocaleString('en-US', {maximumFractionDigits:3});
+const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2200); }
+let saveT;
+function touch(){ clearTimeout(saveT); saveT = setTimeout(() => store(LS.cur, cur), 300); renderTotals(); }
+function saveDB(){ store(LS.db, state.db); }
+function opts(arr, sel, label, empty='— اختر —'){ return `<option value="">${empty}</option>` + arr.map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc(label(x))}</option>`).join(''); }
+const matLabel = m => (m.code ? m.code + ' — ' : '') + m.desc;
+
+/* ================= RENDER CALC ================= */
+function renderCalc(){
+  document.getElementById('c-name').value = cur.name || '';
+  document.getElementById('c-code').value = cur.code || '';
+  const db = state.db;
+  document.getElementById('mat-body').innerHTML = cur.mats.map((row, i) => `<tr>
+      <td><select onchange="setMat(${i},'mat',this.value)">${opts(db.materials, row.mat, matLabel)}</select></td>
+      <td><input type="number" step="any" min="0" value="${row.qty || ''}" placeholder="0" oninput="setMat(${i},'qty',this.value,true)"></td>
+      <td>${cur.mats.length > 1 ? `<button class="btn x" onclick="cur.mats.splice(${i},1);renderCalc();touch()">✕</button>` : ''}</td></tr>`).join('');
+  document.getElementById('prc-body').innerHTML = cur.prcs.map((row, i) => `<tr>
+      <td>${i + 1}</td>
+      <td><select onchange="setPrcMach(${i},this.value)">${opts(db.machines, row.mach, x => x.name)}</select></td>
+      <td><input type="number" step="any" min="0" value="${row.pph ?? ''}" oninput="setPrc(${i},'pph',this.value)"></td>
+      <td><button class="btn x" onclick="cur.prcs.splice(${i},1);renderCalc();touch()">✕</button></td></tr>`).join('')
+    || '<tr><td colspan="4" class="mute">اضغط ＋ عملية</td></tr>';
+  renderTotals();
+}
+function renderTotals(){ document.getElementById('total').textContent = f2(calc(cur).total); }
+function setMat(i, k, v, live){
+  const row = cur.mats[i];
+  if(k === 'qty') row.qty = v === '' ? '' : +v;
+  else if(k === 'price') row.price = v === null || v === '' ? null : +v;
+  else { row.mat = v; row.price = null; }
+  if(live && k === 'price'){ const el = document.getElementById('mp' + i); el.classList.toggle('ovr', row.price != null); touch(); return; }
+  if(live){ touch(); return; }
+  renderCalc(); touch();
+}
+function setPrcMach(i, v){
+  const row = cur.prcs[i], m = byId(state.db.machines, v); row.mach = v; row.labor = ''; row.workers = 1;
+  if(m && m.pph && !n(row.pph)) row.pph = m.pph;
+  renderCalc(); touch();
+}
+function setPrc(i, k, v, rerender){ cur.prcs[i][k] = (k === 'labor') ? v : (v === '' ? '' : +v); if(rerender) renderCalc(); touch(); }
+function addMat(){ cur.mats.push({id:uid(), mat:'', qty:0, price:null}); renderCalc(); touch(); }
+function addPrc(){ cur.prcs.push({id:uid(), mach:'', pph:'', labor:'', workers:1}); renderCalc(); touch(); }
+
+/* ================= COMPONENTS ================= */
+function saveComp(){
+  if(!cur.name && !cur.code){ toast('اكتب اسم أو كود المكون الأول'); document.getElementById('c-name').focus(); return; }
+  cur.updated = Date.now();
+  const i = state.comps.findIndex(c => c.id === cur.id), copy = JSON.parse(JSON.stringify(cur));
+  if(i >= 0) state.comps[i] = copy; else state.comps.push(copy);
+  store(LS.comps, state.comps); store(LS.cur, cur); renderList(); toast('✔ اتحفظ: ' + (cur.name || cur.code));
+}
+function newComp(){ cur = blankComp(); store(LS.cur, cur); renderCalc(); showTab('calc'); }
+function dupComp(){ cur = JSON.parse(JSON.stringify(cur)); cur.id = uid(); cur.name = (cur.name || '') + ' (نسخة)'; store(LS.cur, cur); renderCalc(); toast('نسخة جديدة — اضغط حفظ'); }
+function openComp(id){ const c = state.comps.find(x => x.id === id); if(!c) return; cur = JSON.parse(JSON.stringify(c)); store(LS.cur, cur); renderCalc(); showTab('calc'); }
+async function delComp(id){ const c = state.comps.find(x => x.id === id); if(!c || !await uiConfirm('حذف المكون "' + (c.name || c.code) + '"؟')) return; state.comps = state.comps.filter(x => x.id !== id); store(LS.comps, state.comps); renderList(); }
+function renderList(){
+  const q = (document.getElementById('l-q').value || '').trim().toLowerCase();
+  const rows = state.comps.filter(c => !q || (c.name + ' ' + c.code).toLowerCase().includes(q));
+  document.getElementById('list-body').innerHTML = rows.map((c, i) => { const r = calc(c);
+    return `<tr><td>${i + 1}</td><td style="text-align:right">${esc(c.name)}</td><td>${esc(c.code)}</td><td class="num">${f2(r.dm)}</td><td class="num">${f2(r.proc)}</td><td class="num">${f2(r.ovhTot)}</td><td class="num">${f2(r.direct)}</td><td class="num" style="background:var(--tot)">${f2(r.total)}</td><td class="mute">${new Date(c.updated || 0).toLocaleDateString('en-GB')}</td>
+    <td><button class="btn sm" onclick="openComp('${c.id}')">فتح</button> <button class="btn sm" onclick="exportExcel([state.comps.find(x=>x.id==='${c.id}')])">Excel</button> <button class="btn x" onclick="delComp('${c.id}')">✕</button></td></tr>`; }).join('')
+    || '<tr><td colspan="10" class="mute">لا يوجد مكونات محفوظة</td></tr>';
+}
+
+/* ================= DB EDITOR ================= */
+const DBCOLS = {
+  types:[['name','text'],['unit','text'],['price','number']],
+  labor:[['name','text'],['rate','number']],
+  materials:[['code','text'],['desc','text'],['type','sel:types'],['_price','calc']],
+  machines:[['code','text'],['name','text'],['rate','number'],['pph','number'],['labor','sel:labor']],
+  ovh:[['name','text'],['pct','number'],['base','bases']],
+};
+function renderDB(){
+  Object.keys(DBCOLS).forEach(k => {
+    document.getElementById('db-' + k).innerHTML = state.db[k].map((row, i) => '<tr>' + DBCOLS[k].map(([f, t]) => {
+      if(t === 'calc') return `<td class="num">${f2(matPriceDB(row.id))}</td>`;
+      if(t === 'bases') return `<td><select onchange="dbSet('${k}',${i},'${f}',this.value)">${Object.entries(BASES).map(([v, l]) => `<option value="${v}" ${row[f] === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>`;
+      if(t.startsWith('sel:')){ const src = t.slice(4); return `<td><select onchange="dbSet('${k}',${i},'${f}',this.value)">${opts(state.db[src], row[f], x => x.name, '—')}</select></td>`; }
+      return `<td><input type="${t}" step="any" value="${esc(row[f] ?? '')}" onchange="dbSet('${k}',${i},'${f}',this.value)"></td>`;
+    }).join('') + `<td><button class="btn x" onclick="dbDel('${k}',${i})">✕</button></td></tr>`).join('');
+  });
+}
+function dbSet(k, i, f, v){
+  const t = (DBCOLS[k].find(c => c[0] === f) || [])[1];
+  state.db[k][i][f] = t === 'number' ? (v === '' ? 0 : +v) : v;
+  saveDB(); renderDB(); renderCalc(); renderList();
+}
+async function dbDel(k, i){
+  const row = state.db[k][i], used = isUsed(k, row.id);
+  if(used && !await uiConfirm('العنصر ده مستخدم فى ' + used + ' — حذف برضه؟')) return;
+  state.db[k].splice(i, 1); saveDB(); renderDB(); renderCalc(); renderList();
+}
+function isUsed(k, id){
+  const comps = [cur, ...state.comps]; let c = 0;
+  if(k === 'materials') c = comps.filter(x => x.mats.some(r => r.mat === id)).length;
+  if(k === 'machines') c = comps.filter(x => x.prcs.some(r => r.mach === id)).length;
+  if(k === 'labor') c = comps.filter(x => x.prcs.some(r => r.labor === id)).length + state.db.machines.filter(m => m.labor === id).length;
+  if(k === 'types') c = state.db.materials.filter(m => m.type === id).length;
+  return c ? c + ' مكان' : '';
+}
+function addRow(k){
+  const blank = {types:{name:'', unit:'كجم', price:0}, labor:{name:'', rate:0}, materials:{code:'', desc:'', type:state.db.types[0]?.id || ''}, machines:{code:'', name:'', rate:0, pph:100, labor:''}, ovh:{name:'', pct:0, base:'dm'}}[k];
+  state.db[k].push({id:uid(), ...blank}); saveDB(); renderDB();
+  const tb = document.getElementById('db-' + k); tb.lastElementChild?.querySelector('input')?.focus();
+}
+async function resetDB(){ if(!await uiConfirm('رجوع لقيم الشيت الأصلية؟ أى تعديل فى القاعدة هيتمسح.')) return; state.db = defaultDB(); saveDB(); renderAll(); toast('اترجعت القيم الأصلية'); }
+
+/* ================= FILES ================= */
+async function saveBlob(blob, name){
+  const dl = window.claude ? await claude.use('downloads') : null;
+  if(dl){ try{ await dl.save({filename:name, data:blob}); }catch(e){ if(e && e.code !== 'declined' && e.code !== 'cancelled') uiAlert('الملف ماتحفظش: ' + (e.message || e.code || e)); } return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+function pick(accept, cb){ const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = () => { const f = i.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { Promise.resolve().then(() => cb(JSON.parse(r.result))).catch(e => uiAlert('ملف غير صالح: ' + e.message)); }; r.readAsText(f); }; i.click(); }
+const today = () => new Date().toISOString().slice(0, 10);
+function exportDB(){ saveBlob(new Blob([JSON.stringify(state.db, null, 1)], {type:'application/json'}), 'Cost DB ' + today() + '.json'); }
+function importDB(d){ const db = d.db || d; if(!db.machines || !db.materials) throw new Error('مش ملف قاعدة بيانات'); state.db = Object.assign(defaultDB(), db); saveDB(); renderAll(); toast('✔ اتحملت القاعدة'); }
+function backup(){ saveBlob(new Blob([JSON.stringify({app:'cost-simulator', db:state.db, comps:state.comps}, null, 1)], {type:'application/json'}), 'Cost Simulator backup ' + today() + '.json'); }
+async function restore(d){
+  if(!d.comps) throw new Error('مش ملف نسخة احتياطية');
+  if(!await uiConfirm('استرجاع ' + d.comps.length + ' مكون + قاعدة البيانات؟ البيانات الحالية هتتستبدل.')) return;
+  state.db = Object.assign(defaultDB(), d.db || {}); state.comps = d.comps; saveDB(); store(LS.comps, state.comps); renderAll(); toast('✔ تم الاسترجاع');
+}
+
+/* ================= EXCEL ================= */
+async function exportExcel(list){
+  list = (list || []).filter(Boolean);
+  if(!list.length){ toast('لا يوجد مكونات'); return; }
+  if(typeof ExcelJS === 'undefined'){ uiAlert('مكتبة Excel مش متحملة — اتأكد من الإنترنت أو إن ملف exceljs.min.js جنب البرنامج'); return; }
+  const wb = new ExcelJS.Workbook(), db = state.db;
+  const thin = {style:'thin', color:{argb:'FFBFBFBF'}}, border = {top:thin, bottom:thin, left:thin, right:thin};
+  const C = {mat:'FFE2EFDA', prc:'FFDDEBF7', ovh:'FFFCE4D6', tot:'FFFFF2CC', head:'FF1F3864', grey:'FFF2F2F2'};
+  const fill = c => ({type:'pattern', pattern:'solid', fgColor:{argb:c}});
+  const style = (cell, o = {}) => { cell.border = border; cell.alignment = {horizontal:'center', vertical:'middle', wrapText:true, readingOrder:'rtl'}; if(o.fill) cell.fill = fill(o.fill); if(o.bold || o.color) cell.font = {bold:!!o.bold, color:o.color ? {argb:o.color} : undefined, size:o.size || 11}; if(o.fmt) cell.numFmt = o.fmt; };
+  const M = '#,##0.00', P = '0.00"%"';
+  const usedNames = new Set();
+  const sheetName = c => { let s = (c.name || c.code || 'component').replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 28).trim() || 'component', b = s, k = 2; while(usedNames.has(s.toLowerCase())) s = b.slice(0, 25) + ' ' + k++; usedNames.add(s.toLowerCase()); return s; };
+
+  // Summary sheet
+  const sm = wb.addWorksheet('ملخص', {views:[{rightToLeft:true, zoomScale:90}]});
+  sm.columns = [{width:6}, {width:30}, {width:16}, {width:14}, {width:14}, {width:14}, {width:16}, {width:18}, {width:10}, {width:18}];
+  sm.mergeCells('A1:J1'); sm.getCell('A1').value = 'ملخص تكلفة المكونات — ' + today(); style(sm.getCell('A1'), {fill:C.head, color:'FFFFFFFF', bold:true, size:14}); sm.getRow(1).height = 26;
+  const sh = ['#', 'المكون', 'الكود', 'DM خامات', 'Processing', 'OVH', 'Total Direct', 'Total estimated / قطعة', 'الكمية', 'الإجمالي'];
+  sh.forEach((h, i) => style(Object.assign(sm.getCell(2, i + 1), {value:h}), {fill:C.grey, bold:true}));
+  list.forEach((c, i) => { const r = calc(c), row = 3 + i, q = n(c.qty) || 1;
+    [i + 1, c.name, c.code, r.dm, r.proc, r.ovhTot, r.direct, r.total, q, r.total * q].forEach((v, j) => style(Object.assign(sm.getCell(row, j + 1), {value:v}), {fmt:j >= 3 && j !== 8 ? M : undefined, fill:j === 3 ? C.mat : j === 4 ? C.prc : j === 5 ? C.ovh : j === 7 || j === 9 ? C.tot : undefined, bold:j === 7})); });
+
+  // One sheet per component (live formulas, like the original sheet)
+  list.forEach(c => {
+    const r = calc(c), ws = wb.addWorksheet(sheetName(c), {views:[{rightToLeft:true, zoomScale:90}]});
+    ws.columns = [{width:6}, {width:36}, {width:14}, {width:14}, {width:12}, {width:14}, {width:14}, {width:16}, {width:12}, {width:14}, {width:16}];
+    let y = 1;
+    ws.mergeCells(y, 1, y, 11); ws.getCell(y, 1).value = (c.name || '') + (c.code ? '  —  ' + c.code : ''); style(ws.getCell(y, 1), {fill:C.head, color:'FFFFFFFF', bold:true, size:14}); ws.getRow(y).height = 26; y += 2;
+    // materials
+    const hdr = (cells, col) => { cells.forEach((h, i) => style(Object.assign(ws.getCell(y, i + 1), {value:h}), {fill:col, bold:true})); y++; };
+    hdr(['#', 'الخامة (DM)', 'الكود', 'النوع', 'الكمية', 'الوحدة', 'سعر الوحدة', 'التكلفة'], C.mat);
+    const m0 = y;
+    c.mats.forEach((row, i) => { const m = byId(db.materials, row.mat), t = m && byId(db.types, m.type);
+      [i + 1, m?.desc || '', m?.code || '', t?.name || '', n(row.qty), t?.unit || '', r.mats[i].price].forEach((v, j) => style(Object.assign(ws.getCell(y, j + 1), {value:v}), {fmt:j === 6 ? M : undefined}));
+      ws.getCell(y, 8).value = {formula:`E${y}*G${y}`, result:r.mats[i].cost}; style(ws.getCell(y, 8), {fmt:M}); y++; });
+    const m1 = y - 1;
+    ws.mergeCells(y, 1, y, 7); ws.getCell(y, 1).value = 'DM cost'; style(ws.getCell(y, 1), {bold:true, fill:C.mat});
+    const dmCell = 'H' + y; ws.getCell(dmCell).value = {formula:m1 >= m0 ? `SUM(H${m0}:H${m1})` : '0', result:r.dm}; style(ws.getCell(dmCell), {bold:true, fill:C.mat, fmt:M}); y += 2;
+    // processes
+    hdr(['#', 'الماكينة', 'الكود', 'قطعة/ساعة', 'سعر ساعة', 'ماكينة/قطعة', 'العمالة', 'عدد العمال', 'سعر ساعة العامل', 'عمالة/قطعة', 'إجمالي'], C.prc);
+    const p0 = y;
+    c.prcs.forEach((row, i) => { const m = byId(db.machines, row.mach), l = byId(db.labor, row.labor || m?.labor), x = r.prcs[i];
+      const w = row.workers === '' || row.workers == null ? 1 : n(row.workers);
+      [i + 1, m?.name || '', m?.code || '', n(row.pph), x.mr, null, l?.name || '', w, x.lr].forEach((v, j) => style(Object.assign(ws.getCell(y, j + 1), {value:v}), {fmt:j === 4 || j === 8 ? M : undefined}));
+      ws.getCell(y, 6).value = {formula:`IF(D${y}>0,E${y}/D${y},0)`, result:x.mc};
+      ws.getCell(y, 10).value = {formula:`IF(D${y}>0,I${y}*H${y}/D${y},0)`, result:x.lc};
+      ws.getCell(y, 11).value = {formula:`F${y}+J${y}`, result:x.tot};
+      [6, 10, 11].forEach(k => style(ws.getCell(y, k), {fmt:M})); y++; });
+    const p1 = y - 1, has = p1 >= p0;
+    ws.mergeCells(y, 1, y, 5); ws.getCell(y, 1).value = 'Processing cost'; style(ws.getCell(y, 1), {bold:true, fill:C.prc});
+    const machCell = 'F' + y, labCell = 'J' + y, procCell = 'K' + y;
+    ws.getCell(machCell).value = {formula:has ? `SUM(F${p0}:F${p1})` : '0', result:r.mach};
+    ws.getCell(labCell).value = {formula:has ? `SUM(J${p0}:J${p1})` : '0', result:r.lab};
+    ws.getCell(procCell).value = {formula:has ? `SUM(K${p0}:K${p1})` : '0', result:r.proc};
+    for(let k = 6; k <= 11; k++) style(ws.getCell(y, k), {bold:true, fill:C.prc, fmt:[6, 10, 11].includes(k) ? M : undefined});
+    y += 2;
+    // overheads
+    const directRow = y + db.ovh.length + 4; // filled below
+    hdr(['#', 'OVH', 'النسبة %', 'محسوبة على', 'الأساس', 'القيمة'], C.ovh);
+    const baseRef = {dm:dmCell, labor:labCell, machine:machCell, proc:procCell, direct:'H' + directRow};
+    const o0 = y;
+    r.ovh.forEach((x, i) => {
+      [i + 1, x.o.name, n(x.o.pct), BASES[x.o.base] || ''].forEach((v, j) => style(Object.assign(ws.getCell(y, j + 1), {value:v}), {fmt:j === 2 ? '0.000"%"' : undefined}));
+      ws.getCell(y, 5).value = {formula:baseRef[x.o.base] || '0', result:x.b};
+      ws.getCell(y, 6).value = {formula:`C${y}/100*E${y}`, result:x.v};
+      style(ws.getCell(y, 5), {fmt:M}); style(ws.getCell(y, 6), {fmt:M}); y++; });
+    ws.mergeCells(y, 1, y, 5); ws.getCell(y, 1).value = 'OVH'; style(ws.getCell(y, 1), {bold:true, fill:C.ovh});
+    const ovhCell = 'F' + y; ws.getCell(ovhCell).value = {formula:y > o0 ? `SUM(F${o0}:F${y - 1})` : '0', result:r.ovhTot}; style(ws.getCell(ovhCell), {bold:true, fill:C.ovh, fmt:M});
+    y += 2;
+    // summary block (rows y .. y+5); Total Direct sits at directRow
+    y = directRow - 2;
+    const lines = [['Processing cost', procCell, r.proc], ['DM cost', dmCell, r.dm], ['Total Direct cost', null, r.direct], ['OVH', ovhCell, r.ovhTot], ['Total estimated cost / قطعة', null, r.total]];
+    lines.forEach(([lbl, ref, val], i) => { const yy = y + i;
+      ws.mergeCells(yy, 6, yy, 7); ws.getCell(yy, 6).value = lbl;
+      const f = ref || (i === 2 ? `H${y}+H${y + 1}` : `H${y + 2}+H${y + 3}`);
+      ws.getCell(yy, 8).value = {formula:f, result:val};
+      const big = i === 4, sub = i === 2;
+      style(ws.getCell(yy, 6), {bold:true, fill:big || sub ? C.tot : C.grey}); style(ws.getCell(yy, 8), {bold:true, fill:big || sub ? C.tot : C.grey, fmt:M, size:big ? 13 : 11});
+    });
+    const q = n(c.qty) || 1;
+    if(q !== 1){ const yy = y + 5; ws.mergeCells(yy, 6, yy, 7); ws.getCell(yy, 6).value = 'الإجمالي × ' + q; ws.getCell(yy, 8).value = {formula:`H${y + 4}*${q}`, result:r.total * q}; style(ws.getCell(yy, 6), {bold:true, fill:C.tot}); style(ws.getCell(yy, 8), {bold:true, fill:C.tot, fmt:M}); }
+  });
+
+  // Database sheet
+  const ds = wb.addWorksheet('قاعدة البيانات', {views:[{rightToLeft:true, zoomScale:90}]});
+  ds.columns = [{width:16}, {width:38}, {width:16}, {width:14}, {width:4}, {width:22}, {width:14}, {width:14}];
+  let y = 1;
+  const block = (col0, title, heads, rows, color, fmts = {}) => { let yy = y;
+    ds.mergeCells(yy, col0, yy, col0 + heads.length - 1); ds.getCell(yy, col0).value = title; style(ds.getCell(yy, col0), {fill:C.head, color:'FFFFFFFF', bold:true}); yy++;
+    heads.forEach((h, i) => style(Object.assign(ds.getCell(yy, col0 + i), {value:h}), {fill:color, bold:true})); yy++;
+    rows.forEach(r => { r.forEach((v, i) => style(Object.assign(ds.getCell(yy, col0 + i), {value:v}), {fmt:fmts[i]})); yy++; }); return yy; };
+  const a = block(1, 'الخامات', ['الكود', 'الوصف', 'النوع', 'السعر'], db.materials.map(m => [m.code, m.desc, byId(db.types, m.type)?.name || '', matPriceDB(m.id)]), C.mat, {3:M});
+  const b = block(6, 'أنواع الخامات', ['النوع', 'الوحدة', 'سعر الوحدة'], db.types.map(t => [t.name, t.unit, n(t.price)]), C.mat, {2:M});
+  y = Math.max(a, b) + 1;
+  const c2 = block(1, 'الماكينات', ['الكود', 'الماكينة', 'سعر الساعة', 'قطعة/ساعة'], db.machines.map(m => [m.code, m.name, n(m.rate), n(m.pph)]), C.prc, {2:M});
+  const d2 = block(6, 'العمالة', ['الاسم', 'سعر الساعة'], db.labor.map(l => [l.name, n(l.rate)]), C.prc, {1:M});
+  y = Math.max(c2, d2) + 1;
+  block(1, 'OVH', ['البند', 'محسوبة على', 'النسبة %'], db.ovh.map(o => [o.name, BASES[o.base] || '', n(o.pct)]), C.ovh, {2:'0.000"%"'});
+
+  const buf = await wb.xlsx.writeBuffer();
+  const name = list.length === 1 ? 'تكلفة ' + (list[0].name || list[0].code || 'مكون') : 'تكلفة المكونات ' + today();
+  saveBlob(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), name.replace(/[\\\/:*?"<>|]/g, ' ') + '.xlsx');
+  toast('📥 اتعمل ملف Excel');
+}
+
+/* ================= TABS / INIT ================= */
+function showTab(t){ document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); document.querySelectorAll('.tab').forEach(s => s.classList.toggle('on', s.id === 't-' + t)); if(t === 'list') renderList(); if(t === 'db') renderDB(); }
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.t));
+function renderAll(){ renderCalc(); renderList(); renderDB(); }
+renderAll();
+cloudStart();
+</script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>
