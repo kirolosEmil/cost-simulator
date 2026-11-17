@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cost Simulator">
-<meta name="theme-color" content="#141518">
+<meta name="theme-color" content="#1c1e22">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
@@ -16,21 +16,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
-/* Workshop console: graphite surfaces, one molten-amber accent reserved for the cost, steel blue for machines.
+/* Workshop sheet: off-white paper, white cards, graphite header and a graphite cost panel with the one amber accent; steel blue marks machines.
    Inputs run as numbered steps on one side; the cost stays pinned beside them (bottom bar on phones). */
 :root{
-  --bg:#1c1e22; --panel:#24272c; --panel2:#2b2f35; --field:#17191c; --line:#33373e; --line2:#454a53;
-  --ink:#eceef1; --mute:#a0a6af; --dim:#737a84;
-  --accent:#f2a93b; --accentInk:#1a1406; --accentSoft:rgba(242,169,59,.10); --accentLine:rgba(242,169,59,.35);
-  --steel:#8db4dc; --steelSoft:rgba(141,180,220,.10); --metal:#b9c0ca;
-  --danger:#ff7b70; --shade:rgba(8,9,11,.66);
+  --bg:#f5f4f0; --panel:#ffffff; --panel2:#f3f2ee; --field:#fbfbf9; --line:#e4e2dc; --line2:#d2d0c9;
+  --ink:#1d1f23; --mute:#5c6168; --dim:#8b9097;
+  --accent:#f2a93b; --accentText:#a8620a; --accentInk:#1a1406; --accentSoft:rgba(242,169,59,.16); --accentLine:rgba(214,140,30,.45);
+  --steel:#2f6ea8; --metal:#b9c0ca;
+  --danger:#c8372d; --shade:rgba(20,22,26,.45);
+  /* graphite header + cost panel */
+  --gr:#1c1e22; --gr2:#2b2f35; --grLine:#3a3f47; --grInk:#eceef1; --grMute:#a0a6af;
   /* names the script uses */
-  --card:var(--panel); --tot:var(--accentSoft); --foot:var(--panel2); --hover:#30343b; --fieldLine:var(--line2);
-  --ovrBg:rgba(242,169,59,.14); --ovrLine:var(--accentLine); --blue:#141518; --navMute:var(--mute);
+  --card:var(--panel); --tot:var(--accentSoft); --foot:var(--panel2); --hover:#ebe9e3; --fieldLine:var(--line2);
+  --ovrBg:rgba(242,169,59,.18); --ovrLine:var(--accentLine); --blue:var(--gr); --navMute:var(--grMute);
   --f-text:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;
   --f-num:"IBM Plex Mono",Consolas,"Courier New",monospace;
   --r:12px;
-  color-scheme:dark;
+  color-scheme:light;
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
@@ -40,18 +42,18 @@ button,input,select{font:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- header ---------- */
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--blue);border-bottom:1px solid var(--line);
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--gr);color:var(--grInk);border-bottom:1px solid var(--gr);
   padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .brand svg{flex:none}
 .brand h1{margin:0;font-size:17px;font-weight:700;letter-spacing:.2px;line-height:1.15}
-.brand h1 small{display:block;font-size:12px;font-weight:500;color:var(--mute);letter-spacing:0}
-.sync{font-size:12px;color:var(--dim);white-space:nowrap}
+.brand h1 small{display:block;font-size:12px;font-weight:500;color:var(--grMute);letter-spacing:0}
+.sync{font-size:12px;color:var(--grMute);white-space:nowrap}
 header .sp{flex:1}
-nav{display:flex;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
-nav button{background:none;border:0;color:var(--mute);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:6px}
-nav button:hover{color:var(--ink)}
-nav button.on{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line2)}
+nav{display:flex;gap:2px;background:#24272c;border:1px solid var(--grLine);border-radius:10px;padding:3px}
+nav button{background:none;border:0;color:var(--grMute);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13.5px;font-weight:500;display:flex;align-items:center;gap:6px}
+nav button:hover{color:var(--grInk)}
+nav button.on{background:var(--gr2);color:var(--grInk);box-shadow:inset 0 0 0 1px #454a53}
 nav svg{width:15px;height:15px}
 
 /* ---------- layout ---------- */
@@ -65,13 +67,13 @@ main{max-width:1180px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-ri
 .card h2{margin:0 0 14px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap;text-wrap:balance}
 .card h2 .sp{flex:1}
 .n{font-family:var(--f-num);font-size:12px;font-weight:600;color:var(--dim);border:1px solid var(--line2);border-radius:6px;padding:1px 6px;letter-spacing:.5px}
-.prc .n{color:var(--steel);border-color:rgba(141,180,220,.35)}
+.prc .n{color:var(--steel);border-color:rgba(47,110,168,.35)}
 .hint{font-size:12px;color:var(--dim);font-weight:400}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute);font-weight:500}
 input,select{padding:9px 11px;border:1px solid var(--line2);border-radius:9px;background:var(--field);color:var(--ink);min-width:0;transition:border-color .15s}
-input:hover,select:hover{border-color:#5a606a}
+input:hover,select:hover{border-color:#b5b3ac}
 input:focus,select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accentSoft)}
 input[type=number]{text-align:center;font-family:var(--f-num);font-weight:500}
 input::placeholder{color:var(--dim)}
@@ -95,12 +97,12 @@ tfoot td{font-weight:700;background:var(--panel2)}
 
 /* buttons */
 .btn{border:1px solid var(--line2);background:var(--panel2);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer;white-space:nowrap;font-weight:500;font-size:13.5px;display:inline-flex;align-items:center;gap:7px;transition:background .15s,border-color .15s}
-.btn:hover{background:var(--hover);border-color:#5a606a}
+.btn:hover{background:var(--hover);border-color:#b5b3ac}
 .btn.pri{background:var(--accent);color:var(--accentInk);border-color:var(--accent);font-weight:600}
 .btn.pri:hover{background:#f7b955}
 .btn.ghost{background:none}
 .btn.x{color:var(--dim);border:none;background:none;font-size:18px;padding:4px 8px;line-height:1}
-.btn.x:hover{color:var(--danger);background:rgba(255,123,112,.08)}
+.btn.x:hover{color:var(--danger);background:rgba(200,55,45,.08)}
 .btn.sm{padding:5px 11px;font-size:12.5px}
 .btn svg{width:15px;height:15px}
 .add{color:var(--mute);border-style:dashed;background:none}
@@ -113,27 +115,29 @@ tfoot td{font-weight:700;background:var(--panel2)}
 .search{width:240px;max-width:100%}
 
 /* ---------- result ---------- */
-.result{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);background:linear-gradient(180deg,#2a2620 0%,var(--panel) 62%);border:1px solid var(--accentLine);border-radius:16px;padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.result{position:sticky;top:calc(env(safe-area-inset-top,0px) + 84px);background:var(--gr);color:var(--grInk);border:1px solid var(--gr);border-radius:16px;box-shadow:0 12px 30px rgba(28,30,34,.18);padding:22px 22px 18px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
 .result::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--accent)}
 .r-label{font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.6px}
 .r-num{display:flex;align-items:baseline;gap:8px}
-.r-num b{font-family:var(--f-num);font-size:46px;font-weight:600;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-1px}
-.r-num span{font-size:13px;color:var(--mute)}
+.r-num b{font-family:var(--f-num);font-size:46px;font-weight:600;line-height:1;color:var(--grInk);font-variant-numeric:tabular-nums;letter-spacing:-1px}
+.r-num span{font-size:13px;color:var(--grMute)}
 .r-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.r-meta div{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
-.r-meta small{display:block;font-size:11px;color:var(--dim)}
+.r-meta div{background:rgba(255,255,255,.04);border:1px solid var(--grLine);border-radius:9px;padding:8px 10px}
+.r-meta small{display:block;font-size:11px;color:var(--grMute)}
+.result .btn.ghost{color:var(--grInk);border-color:var(--grLine)}
+.result .btn.ghost:hover{background:var(--gr2);border-color:#5a606a}
 .r-meta b{font-family:var(--f-num);font-size:15px;font-weight:600}
 .r-actions{display:flex;gap:8px;flex-wrap:wrap}
 .r-actions .btn{flex:1;justify-content:center}
 .flash{animation:flash .5s ease}
-@keyframes flash{from{color:var(--accent)}to{color:var(--ink)}}
+@keyframes flash{from{color:var(--accent)}to{color:var(--grInk)}}
 @media (prefers-reduced-motion:reduce){.flash{animation:none}*{transition:none!important}}
 
 /* ---------- overlays ---------- */
 .toast{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;opacity:0;transition:.3s;pointer-events:none;z-index:20;font-weight:500}
 .toast.on{opacity:1}
 .dlg{position:fixed;inset:0;background:var(--shade);display:flex;align-items:center;justify-content:center;z-index:30;padding:16px;backdrop-filter:blur(3px)}
-.dlg>div{background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:14px;padding:20px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.dlg>div{background:var(--panel);color:var(--ink);border:1px solid var(--line2);border-radius:14px;padding:20px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:16px;box-shadow:0 20px 50px rgba(20,22,26,.25)}
 .dlg p{margin:0;line-height:1.7}
 .dlg .bar{justify-content:flex-start}
 .pct{display:flex;gap:4px;align-items:center;justify-content:center}
@@ -142,7 +146,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
 /* ---------- phone ---------- */
 @media(max-width:860px){
   .calc{grid-template-columns:1fr}
-  .result{position:sticky;top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:4;padding:14px 16px;gap:10px;flex-direction:row;flex-wrap:wrap;align-items:center;box-shadow:0 -10px 30px rgba(0,0,0,.45)}
+  .result{position:sticky;top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:4;padding:14px 16px;gap:10px;flex-direction:row;flex-wrap:wrap;align-items:center;box-shadow:0 -6px 24px rgba(28,30,34,.25)}
   .r-label{width:100%}
   .r-num{flex:1}
   .r-num b{font-size:34px}
@@ -291,8 +295,8 @@ function defaultDB(){
     ],
     machines:[
       {id:'k1', code:'mm1601', name:'Laser', rate:187.28817727272727, pph:100, labor:l1},
-      {id:'k2', code:'mm1600', name:'Bending mach.', rate:334.4312284848484, pph:100, labor:l2},
-      {id:'k3', code:'mm0011', name:'CNC mach.', rate:105.81435363636365, pph:100, labor:l2},
+      {id:'k2', code:'mm1600', name:'Panel bender', rate:334.4312284848484, pph:100, labor:l2},
+      {id:'k3', code:'mm0011', name:'Press brake CNC', rate:105.81435363636365, pph:100, labor:l2},
     ],
     ovh:[
       {id:'o1', name:'Indirect Materials', pct:3.643015299919931, base:'dm'},
