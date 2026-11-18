@@ -121,6 +121,9 @@ tfoot td{font-weight:700;background:var(--panel2)}
 .r-num{display:flex;align-items:baseline;gap:8px}
 .r-num b{font-family:var(--f-num);font-size:46px;font-weight:600;line-height:1;color:var(--grInk);font-variant-numeric:tabular-nums;letter-spacing:-1px}
 .r-num span{font-size:13px;color:var(--grMute)}
+.r-sub{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:-4px;padding-top:10px;border-top:1px solid var(--grLine);font-size:12.5px;color:var(--grMute)}
+.r-sub small{font-size:11px;opacity:.85}
+.r-sub b{font-family:var(--f-num);font-size:20px;font-weight:600;color:var(--grInk);font-variant-numeric:tabular-nums;white-space:nowrap}
 .r-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .r-meta div{background:rgba(255,255,255,.04);border:1px solid var(--grLine);border-radius:9px;padding:8px 10px}
 .r-meta small{display:block;font-size:11px;color:var(--grMute)}
@@ -151,6 +154,9 @@ tfoot td{font-weight:700;background:var(--panel2)}
   .r-num{flex:1}
   .r-num b{font-size:34px}
   .r-meta{display:none}
+  .r-sub{order:5;width:100%;margin-top:0;padding-top:8px}
+  .r-sub small{display:none}
+  .r-sub b{font-size:17px}
   .r-actions{flex:none}
   .r-actions .btn.ghost{display:none}
 }
@@ -217,6 +223,7 @@ tfoot td{font-weight:700;background:var(--panel2)}
     <aside class="result" aria-live="polite">
       <div class="r-label">تكلفة القطعة</div>
       <div class="r-num"><b id="total">0.00</b><span>للقطعة</span></div>
+      <div class="r-sub"><span>بدون الخامة <small>(عمليات + أوفرهيد شامل أوفرهيد الخامة)</small></span><b id="r-nomat">0.00</b></div>
       <div class="r-meta">
         <div><small>الوزن</small><b id="r-w">0</b> <small style="display:inline">كجم</small></div>
         <div><small>العمليات</small><b id="r-ops">0</b></div>
@@ -493,7 +500,8 @@ function renderCalc(){
   renderTotals();
 }
 function renderTotals(){
-  const el = document.getElementById('total'), v = f2(calc(cur).total);
+  const res = calc(cur), el = document.getElementById('total'), v = f2(res.total);
+  const nm = document.getElementById('r-nomat'); if(nm) nm.textContent = f2(res.total - res.dm);
   if(el.textContent !== v){ el.textContent = v; el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
   const w = cur.mats.reduce((s, r) => s + n(r.qty), 0), ops = cur.prcs.filter(r => r.mach).length;
   const rw = document.getElementById('r-w'), ro = document.getElementById('r-ops');
